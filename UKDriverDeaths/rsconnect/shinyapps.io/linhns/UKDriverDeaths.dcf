@@ -1,0 +1,12 @@
+name: UKDriverDeaths
+title: UKDriverDeaths
+username:
+account: linhns
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2452808
+bundleId: 3268070
+url: https://linhns.shinyapps.io/UKDriverDeaths/
+when: 1592141972.81135
+asMultiple: FALSE
+asStatic: FALSE
