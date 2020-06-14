@@ -1,0 +1,124 @@
+---
+title: "Regression Models Course Project"
+author: "linhns"
+date: "6/3/2020"
+output: 
+    pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+**Packages**  
+```{r loadpackages, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(car)
+options(digits = 3)
+```
+
+## 1. Executive summary  
+Motor Trend are interested in exploring the relationship between a set of variables and miles per gallon (MPG). Using a data set of a collection of cars, we take a look at answering the following questions:  
+- Is an automatic or manual transmission better for MPG?  
+- Quantify the MPG difference between automatic and manual transmissions.
+
+We will conduct some EDA then fit several models.
+
+## 2. Load data  
+```{r loaddata} 
+data("mtcars")
+```
+
+## 3. Basic exploratory data analysis
+```{r summary}
+## Create a summary of the first 3 entries of mtcars
+kable(head(mtcars, 3), caption = "First 3 rows of the mtcars dataset")
+```
+
+From the help file of this dataset, which was extracted from the 1974 Motor Trend US magazine, we see that it comprises fuel consumption and 10 other aspects of automobile design for 32 automobiles.  
+
+```{r summarystats,results='asis'}
+# Summary statistics for the mpg
+kable(t(as.matrix(summary(mtcars$mpg))), 
+      caption = "Summary Statistics mpg",align = c("c", "c")) 
+```
+
+```{r violin, fig.align='center'}
+mtcars <- mtcars %>% mutate(am = as.factor(am))
+levels(mtcars$am) <- c("auto", "manual")
+mtcars %>% ggplot(aes(am, mpg)) + 
+    geom_violin(aes(fill = am)) +
+    labs(title = "Plot of mpg by transmission type", x = "Transmission Type", 
+         y = "Miles / gallon") + 
+    scale_fill_discrete("Transmission Type") +
+    theme_minimal()
+```
+
+From the violin plot, it is notable that manual transmission is associated with greater _mpg_ than automatic tranmission. See also the summary statistics.  
+
+Now we look at fitting different models based on a hypothesis test.  
+
+## 4. Regression models
+
+**Hypothesis test**  
+
+Let's remind ourselves of our initial question: "Is an automatic or manual transmission better for mpg?".  
+
+Null hypothesis: $H_0: \beta_1 = 0$ manual transmission is not a significant predictor for mpg.  
+Alternative hypothesis: $H_a: \beta_1 \neq 0$ manual transmission is a significant predictor for mpg.  
+
+Assume car models sample are independent of each other.  
+
+**Simple linear regression model**  
+
+We apply the simple linear model first because it is intuitive and easy to do in R.  
+```{r simplelinear}
+simple_linear <- lm(mpg ~ am, mtcars)
+coef(summary(simple_linear))
+par(mfrow=c(2,2))
+plot(simple_linear)
+```
+
+Looking at the coefficients table, we would reject the null hypothesis since the p-value is less than 5%.  
+
+The adjusted R squared is `r round(summary(simple_linear)$adj.r.squared,2)` which indicates this may not be the best model.
+
+There may be other variables influencing _mpg_ so we will investigate with a multivariable linear model.  
+
+**Multivarible regression model**  
+```{r mvr}
+mvr <- lm(mpg ~ ., mtcars)
+coef(summary(mvr))
+par(mfrow=c(2,2))
+plot(mvr)
+```
+
+Looking at the coefficient table, we cannot reject the null hypothesis since all p-values are larger than 5%.  
+
+Hence, we will now try a third model, which is stepwise backward regression.  
+```{r stepwise}
+sw <- step(mvr, direction = "backward", trace = FALSE)
+coef(summary(sw))
+par(mfrow=c(2,2))
+plot(sw)
+```
+
+The adjusted R squared for this third model is `r round(summary(sw)$adj.r.squared,2)`.
+
+We can summarise the third model further by saying that the manual transmission appears to be a significant predictor of _mpg_ and we expect an increase of `r round(summary(sw)$coefficients[4,1],2)` _mpg_ when choosing manual over an automatic transmission, with other variables held constant.  
+
+**Model diagnostic**  
+As the adjusted R-squared for the third model is much higher than the first one, we can say it is a better fit. We can compare models using anova.  
+
+
+```{r anova, resulst='asis'}
+anova(simple_linear,sw)
+```
+
+Since the p-value is <0.05% we would reject a null hypothesis that the variable coefficients for model sw are 0.    
+
+**Other models**  
+Since mpg is numerical, the logistic and Poisson regression models are not applicable.  
