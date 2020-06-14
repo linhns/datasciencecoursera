@@ -1,0 +1,106 @@
+---
+title: "Statiscal Inference project part 2"
+author: "Nguyen Son Linh"
+date: "5/29/2020"
+output: 
+    pdf_document: default
+    html_document: default
+---
+
+## Overview
+*In this part, we try to infer statistically with the ToothGrowth dataset*
+
+## Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Packages needed
+```{r, message=FALSE}
+library(ggplot2)
+```
+
+
+
+***
+
+## Part 2: Basic Inferential Statistics instructions
+### 2.1 Load the data
+```{r}
+data("ToothGrowth")
+```
+
+As seen, the sample mean is close to the theoretical mean  
+
+### 2.2 Basic summary and exploratory data analysis.
+```{r}
+str(ToothGrowth)
+summary(ToothGrowth)
+```
+
+With regard to the R documentation, the data consists of length of odontoblasts in 60 guinea pigs. 10 guinea pigs were assigned to each group, which receive one of three dose levels of vitamin C, delivered through either ascorbic acid of orange juice
+
+We make the histogram of the len variable
+```{r, fig.height=2}
+g <- ggplot(ToothGrowth,aes(len))
+g + geom_histogram(aes(y = ..density..),colour="black",fill="lightblue") +
+    stat_function(fun=dnorm,args=list( mean=mean(ToothGrowth$len), sd=sqrt(var(ToothGrowth$len))),geom="line",color = "black", size = 1.0)+
+    scale_x_continuous("Length")+
+    ylab("Density") + 
+    theme_minimal()
+```
+The shape difference between the histogram and the calculated normal distribution may be explained by the dose levels difference and the supplement. Hence we explore the relationship of len and other variables.
+
+```{r}
+ToothGrowth$supp <- as.character(ToothGrowth$supp)
+g <- ggplot(ToothGrowth,aes(supp,len))
+g+geom_boxplot(aes(fill=supp))+
+    ggtitle("Boxplot of the Length of Odontoblasts by the Supplement Types (VC and OJ)") +
+    xlab("Supplement Type") +
+    ylab("Length") +
+    theme_minimal()
+
+ToothGrowth$dose <- as.character(ToothGrowth$dose)
+g <- ggplot(ToothGrowth,aes(dose,len))
+g + geom_boxplot(aes(fill=dose)) +
+    ggtitle("Boxplot of the Length of Odontoblasts by the dose levels") +
+    xlab("Dose") +
+    ylab("Length")  +
+    theme_minimal()
+```
+
+The two plot depicts that orange juice has a higher median, while three doses have the same variability, with median increasing as dose levels increase.  
+
+### 2.3 Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering).
+
+Consider these hypotheses:  
+The null hypothesis $H_0 : \mu = 0$ is that population mean  difference ($\mu$) is not different of the length by the supp, given a dose level. 
+The alternative hypothesis $H_1 : \mu \neq 0$ is that there is a population mean difference of length by supp, given a dose level.
+
+Here we would use the t-distribution as the population standard deviation is unknown and there are 60 observations from 60 different guinea pigs
+
+```{r, results='asis'}
+dose_levels <- levels(factor(ToothGrowth$dose))
+reject <- " "
+notreject <- " "
+for (level in dose_levels){
+    result<-t.test(len ~ supp, ToothGrowth[ToothGrowth$dose == level, ])
+    print(paste("For dose",as.character(level)," the t.test result is: ")) 
+    print(result)
+    ifelse(result$p.value < 0.05,
+           print(paste("Since p-value < 5%, reject null hypothesis for dose level",as.character(level))),
+           print(paste("Since p-value > 5%, fail to reject null hypothesis for dose level",as.character(level))))
+    "\n"
+    ifelse(result$p.value < 0.05,
+           reject <- paste(reject, " and ", as.character(level)),
+           notreject <- paste(notreject, " and ", as.character(level)))
+    
+}
+
+```
+
+### 2.4 Conclusion
+
+- In the initial exploratory data analysis, the dose levels were apparently a factor boosting tooth growth, whereas the supplement type seems unlikely.
+- After conducting the t-test for supplement types at each dose level, we find a strong evidence against the null hypothesis at dose level 0.5 and 1. At dose level 2 that did not happen.
+- Assume independent, normally distributed data 
